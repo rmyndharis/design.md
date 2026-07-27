@@ -113,6 +113,7 @@ The tokens are the normative values. The prose provides context for how to apply
 version: <string>          # optional, current: "alpha"
 name: <string>
 description: <string>      # optional
+omitted: <string[] | OmittedSection[]> # optional, list of sections to intentionally omit
 colors:
   <token-name>: <Color>
 typography:
@@ -296,6 +297,8 @@ npx @google/design.md export --format dtcg DESIGN.md > tokens.json
 | `tailwind` | JSON | Alias for `json-tailwind` |
 | `dtcg` | JSON | W3C Design Tokens Format Module |
 
+Exit code `0` on a successful export (regardless of any lint findings in the source — run `lint` to gate on those), `1` on an invalid `--format` or an emitter error, and `2` if the input file cannot be read.
+
 ### `spec`
 
 Output the DESIGN.md format specification (useful for injecting spec context into agent prompts).
@@ -314,7 +317,7 @@ npx @google/design.md spec --rules-only --format json
 
 ## Linting Rules
 
-The linter runs ten rules against a parsed DESIGN.md. Each rule produces findings at a fixed severity level.
+The linter runs eleven rules against a parsed DESIGN.md. Each rule produces findings at a fixed severity level.
 
 | Rule | Severity | What it checks |
 |:-----|:---------|:---------------|
@@ -327,7 +330,8 @@ The linter runs ten rules against a parsed DESIGN.md. Each rule produces finding
 | `missing-typography` | warning | Colors are defined but no typography tokens exist — agents will use default fonts |
 | `section-order` | warning | Sections appear out of the canonical order defined by the spec |
 | `unknown-key` | warning | A top-level YAML key looks like a typo of a known schema key (e.g. `colours:` → `colors:`); custom extension keys stay silent |
-| `token-like-ignored` | warning | A top-level YAML key looks like a design-token map but is not a recognized schema key, so `export` will silently ignore it |
+| `token-like-ignored` | warning | An unknown top-level key has token-like values (e.g. hex colors, font families, dimensions) suggesting it was dropped or misspelled |
+| `omitted-rules` | info | Validates the `omitted` configuration mapping for unknown or redundant sections |
 
 ### Programmatic API
 

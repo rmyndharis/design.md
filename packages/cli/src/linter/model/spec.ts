@@ -13,7 +13,7 @@
 // limitations under the License.
 
 import { z } from 'zod';
-import type { ParsedDesignSystem } from '../parser/spec.js';
+import type { ParsedDesignSystem, OmittedSection } from '../parser/spec.js';
 import {
   STANDARD_UNITS as _STANDARD_UNITS,
   VALID_TYPOGRAPHY_PROPS as _VALID_TYPOGRAPHY_PROPS,
@@ -28,6 +28,7 @@ export interface Finding {
   severity: Severity;
   path?: string;
   message: string;
+  rule?: string;
 }
 
 // ── RESOLVED VALUE TYPES ───────────────────────────────────────────
@@ -71,6 +72,7 @@ export const VALID_COMPONENT_SUB_TOKENS = _VALID_COMPONENT_SUB_TOKENS;
 export interface DesignSystemState {
   name?: string | undefined;
   description?: string | undefined;
+  omitted?: OmittedSection[] | undefined;
   colors: Map<string, ResolvedColor>;
   typography: Map<string, ResolvedTypography>;
   rounded: Map<string, ResolvedDimension>;
@@ -142,12 +144,20 @@ const CSS_UNITS = new Set([
 ]);
 
 /**
+ * Upper bound on a dimension string's length. Real CSS dimensions are a handful
+ * of characters; capping the length keeps validation linear and prevents
+ * pathological regex backtracking on oversized, attacker-supplied values.
+ */
+const MAX_DIMENSION_LENGTH = 64;
+
+/**
  * Parse a dimension string into its numeric value and unit suffix.
  * Accepts an optional leading sign and optional decimal (`.5rem` is valid).
  * Returns null for non-dimension strings (bare numbers, keywords like `auto`).
  */
 export function parseDimensionParts(raw: string): { value: number; unit: string } | null {
   if (typeof raw !== 'string') return null;
+  if (raw.length > MAX_DIMENSION_LENGTH) return null;
   const match = raw.match(/^(-?\d*\.?\d+)([a-zA-Z%]+)$/);
   if (!match) return null;
   const value = parseFloat(match[1]!);
